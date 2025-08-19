@@ -1,11 +1,27 @@
-"use client";
+'use client';
 
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
+import {
+  Card,
+  CardContent,
+  CardHeader,
+  CardTitle,
+  CardDescription,
+} from '@/components/ui/card';
 import { Users, Eye, FileText, BarChart2, Calendar } from 'lucide-react';
 import { useEffect, useState, useMemo } from 'react';
 import { apiClient } from '@/lib/api-client';
 import { toast } from 'sonner';
-import { BarChart, Bar, LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
+import {
+  BarChart,
+  Bar,
+  LineChart,
+  Line,
+  XAxis,
+  YAxis,
+  CartesianGrid,
+  Tooltip,
+  ResponsiveContainer,
+} from 'recharts';
 
 interface Post {
   id: string;
@@ -26,28 +42,32 @@ export default function AnalyticsPage() {
       try {
         setLoading(true);
         console.log('Fetching posts...');
-        
-        const response = await apiClient.getPosts({ 
+
+        const response = await apiClient.getPosts({
           status: 'published',
-          limit: 100
+          limit: 100,
         });
-        
+
         console.log('API Response:', response);
-        const postsData = Array.isArray(response) ? response : response?.data || response?.posts || [];
-        
+        const postsData = Array.isArray(response)
+          ? response
+          : response?.data || [];
+
         if (!Array.isArray(postsData)) {
           throw new Error('Invalid posts data format received from server');
         }
-        
-        const processedPosts = postsData.map(post => ({
+
+        const processedPosts = postsData.map((post) => ({
           ...post,
           view_count: post.view_count || post.views || 0,
-          created_at: post.created_at || post.published_at || new Date().toISOString()
+          created_at:
+            post.created_at || post.published_at || new Date().toISOString(),
         }));
-        
+
         setPosts(processedPosts);
       } catch (err) {
-        const errorMessage = err instanceof Error ? err.message : 'Failed to load posts';
+        const errorMessage =
+          err instanceof Error ? err.message : 'Failed to load posts';
         console.error('Error:', errorMessage, err);
         setError(errorMessage);
         toast.error('Failed to load analytics data');
@@ -62,9 +82,13 @@ export default function AnalyticsPage() {
   // Calculate stats
   const stats = useMemo(() => {
     const totalPosts = posts.length;
-    const totalViews = posts.reduce((sum, post) => sum + (post.view_count || 0), 0);
-    const averageViews = totalPosts > 0 ? Math.round((totalViews / totalPosts) * 10) / 10 : 0;
-    
+    const totalViews = posts.reduce(
+      (sum, post) => sum + (post.view_count || 0),
+      0,
+    );
+    const averageViews =
+      totalPosts > 0 ? Math.round((totalViews / totalPosts) * 10) / 10 : 0;
+
     // Get top 5 most viewed posts
     const popularPosts = [...posts]
       .sort((a, b) => (b.view_count || 0) - (a.view_count || 0))
@@ -72,8 +96,21 @@ export default function AnalyticsPage() {
 
     // Prepare monthly data for the past 5 months
     const now = new Date();
-    const monthNames = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
-    
+    const monthNames = [
+      'Jan',
+      'Feb',
+      'Mar',
+      'Apr',
+      'May',
+      'Jun',
+      'Jul',
+      'Aug',
+      'Sep',
+      'Oct',
+      'Nov',
+      'Dec',
+    ];
+
     // Generate last 5 months including current month
     const last5Months = Array.from({ length: 5 }, (_, i) => {
       const date = new Date(now);
@@ -84,7 +121,7 @@ export default function AnalyticsPage() {
         month: month,
         year: year,
         label: `${monthNames[month]} '${year.toString().slice(2)}`,
-        views: 0
+        views: 0,
       };
     });
 
@@ -94,25 +131,25 @@ export default function AnalyticsPage() {
       const postDate = new Date(post.created_at);
       const postMonth = postDate.getMonth();
       const postYear = postDate.getFullYear();
-      
+
       // Find if this post is in our last 5 months
-      const monthEntry = last5Months.find(m => 
-        m.month === postMonth && m.year === postYear
+      const monthEntry = last5Months.find(
+        (m) => m.month === postMonth && m.year === postYear,
       );
-      
+
       if (monthEntry) {
         monthEntry.views += post.view_count || 0;
       }
-      
+
       return acc;
     }, last5Months);
 
     // Sort by date and format for chart
     const monthlyStats = monthlyData
       .sort((a, b) => a.year - b.year || a.month - b.month)
-      .map(month => ({
+      .map((month) => ({
         month: month.label,
-        views: month.views
+        views: month.views,
       }));
 
     return {
@@ -120,7 +157,7 @@ export default function AnalyticsPage() {
       totalViews,
       averageViews,
       popularPosts,
-      monthlyStats
+      monthlyStats,
     };
   }, [posts]);
 
@@ -137,9 +174,11 @@ export default function AnalyticsPage() {
     return (
       <div className="text-center py-10">
         <p className="text-red-500">Error: {error}</p>
-        <p className="text-sm text-gray-500 mt-2">Check the browser console for more details.</p>
-        <button 
-          onClick={() => window.location.reload()} 
+        <p className="text-sm text-gray-500 mt-2">
+          Check the browser console for more details.
+        </p>
+        <button
+          onClick={() => window.location.reload()}
           className="mt-4 px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600"
         >
           Retry
@@ -163,20 +202,24 @@ export default function AnalyticsPage() {
             <div className="text-2xl font-bold">{stats.totalPosts}</div>
           </CardContent>
         </Card>
-        
+
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">Total Views</CardTitle>
             <Eye className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{stats.totalViews.toLocaleString()}</div>
+            <div className="text-2xl font-bold">
+              {stats.totalViews.toLocaleString()}
+            </div>
           </CardContent>
         </Card>
-        
+
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Avg. Views/Post</CardTitle>
+            <CardTitle className="text-sm font-medium">
+              Avg. Views/Post
+            </CardTitle>
             <BarChart2 className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
@@ -200,30 +243,30 @@ export default function AnalyticsPage() {
                 margin={{ top: 5, right: 20, left: 0, bottom: 5 }}
               >
                 <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
-                <XAxis 
-                  dataKey="month" 
+                <XAxis
+                  dataKey="month"
                   tick={{ fill: '#666', fontSize: 12 }}
                   axisLine={{ stroke: '#ddd' }}
                   tickLine={{ stroke: '#ddd' }}
                 />
-                <YAxis 
+                <YAxis
                   tick={{ fill: '#666', fontSize: 12 }}
                   axisLine={{ stroke: '#ddd' }}
                   tickLine={{ stroke: '#ddd' }}
                   width={40}
                 />
-                <Tooltip 
+                <Tooltip
                   contentStyle={{
                     backgroundColor: 'white',
                     border: '1px solid #ddd',
                     borderRadius: '4px',
-                    boxShadow: '0 2px 4px rgba(0,0,0,0.1)'
+                    boxShadow: '0 2px 4px rgba(0,0,0,0.1)',
                   }}
                 />
-                <Line 
-                  type="monotone" 
-                  dataKey="views" 
-                  stroke="#8884d8" 
+                <Line
+                  type="monotone"
+                  dataKey="views"
+                  stroke="#8884d8"
                   strokeWidth={2}
                   dot={{ r: 4, fill: '#8884d8' }}
                   activeDot={{ r: 6, fill: '#6a5acd' }}
@@ -242,34 +285,31 @@ export default function AnalyticsPage() {
           </CardHeader>
           <CardContent className="h-[300px]">
             <ResponsiveContainer width="100%" height="100%">
-              <BarChart 
+              <BarChart
                 data={stats.popularPosts}
                 margin={{ top: 20, right: 30, left: 20, bottom: 5 }}
               >
                 <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
-                <XAxis 
-                  dataKey="title" 
-                  hide 
-                />
-                <YAxis 
+                <XAxis dataKey="title" hide />
+                <YAxis
                   tick={{ fill: '#666', fontSize: 12 }}
                   axisLine={{ stroke: '#ddd' }}
                   tickLine={{ stroke: '#ddd' }}
                 />
-                <Tooltip 
+                <Tooltip
                   formatter={(value) => [value, 'Views']}
                   labelFormatter={(label) => `Post: ${label}`}
                   contentStyle={{
                     backgroundColor: 'white',
                     border: '1px solid #ddd',
                     borderRadius: '4px',
-                    boxShadow: '0 2px 4px rgba(0,0,0,0.1)'
+                    boxShadow: '0 2px 4px rgba(0,0,0,0.1)',
                   }}
                 />
-                <Bar 
-                  dataKey="view_count" 
-                  name="Views" 
-                  fill="#8884d8" 
+                <Bar
+                  dataKey="view_count"
+                  name="Views"
+                  fill="#8884d8"
                   radius={[4, 4, 0, 0]}
                 />
               </BarChart>
@@ -288,8 +328,13 @@ export default function AnalyticsPage() {
           {stats.popularPosts.length > 0 ? (
             <div className="space-y-4">
               {stats.popularPosts.map((post) => (
-                <div key={post.id} className="flex items-center justify-between p-2 hover:bg-gray-50 rounded">
-                  <span className="font-medium truncate mr-4">{post.title}</span>
+                <div
+                  key={post.id}
+                  className="flex items-center justify-between p-2 hover:bg-gray-50 rounded"
+                >
+                  <span className="font-medium truncate mr-4">
+                    {post.title}
+                  </span>
                   <span className="text-sm text-gray-500 whitespace-nowrap">
                     {post.view_count?.toLocaleString()} views
                   </span>
