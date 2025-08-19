@@ -2,7 +2,14 @@
 
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import { ArrowLeft, Save, Image as ImageIcon, X, Plus, Minus } from 'lucide-react';
+import {
+  ArrowLeft,
+  Save,
+  Image as ImageIcon,
+  X,
+  Plus,
+  Minus,
+} from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -10,11 +17,10 @@ import { Textarea } from '@/components/ui/textarea';
 import { Switch } from '@/components/ui/switch';
 import { useToast } from '@/hooks/use-toast';
 import { Badge } from '@/components/ui/badge';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { createBlogPost, createTag, getTags, getCategories } from '@/lib/blog-api';
+import { createBlogPost, getCategories } from '@/lib/blog-api';
 import { useAuth } from '@/lib/auth-context';
-import { apiClient } from '@/lib/api-client';
+import { apiClient, Category } from '@/lib/api-client'; // Corrected: Import Category from api-client
 
 interface CreatePostData {
   title: string;
@@ -28,18 +34,20 @@ interface CreatePostData {
   allowComments?: boolean;
   metaTitle?: string;
   metaDescription?: string;
+  seo_keywords?: string;
   canonicalUrl?: string;
-}
-
-interface Category {
-  id: string;
-  name: string;
-  description?: string;
 }
 
 // Mock tags - replace with actual API call if needed
 const allTags = [
-  'nextjs', 'react', 'typescript', 'javascript', 'tailwind', 'nodejs', 'webdev', 'beginners'
+  'nextjs',
+  'react',
+  'typescript',
+  'javascript',
+  'tailwind',
+  'nodejs',
+  'webdev',
+  'beginners',
 ];
 
 export default function NewPostPage() {
@@ -50,11 +58,13 @@ export default function NewPostPage() {
   const [featuredImage, setFeaturedImage] = useState<File | null>(null);
   const [previewImage, setPreviewImage] = useState<string | null>(null);
   const [selectedTags, setSelectedTags] = useState<string[]>([]);
-  const [availableCategories, setAvailableCategories] = useState<Category[]>([]);
+  const [availableCategories, setAvailableCategories] = useState<Category[]>(
+    [],
+  );
   const [selectedCategoryIds, setSelectedCategoryIds] = useState<string[]>([]);
   const [isLoadingCategories, setIsLoadingCategories] = useState(true);
   const [tagInput, setTagInput] = useState('');
-  
+
   const [formData, setFormData] = useState<CreatePostData>({
     title: '',
     slug: '',
@@ -65,8 +75,9 @@ export default function NewPostPage() {
     allowComments: true,
     metaTitle: '',
     metaDescription: '',
+    seo_keywords: '',
     canonicalUrl: '',
-    categories: []
+    categories: [],
   });
 
   // Fetch categories on component mount
@@ -92,32 +103,36 @@ export default function NewPostPage() {
 
   // Toggle category selection
   const toggleCategory = (categoryId: string) => {
-    setSelectedCategoryIds(prev => {
+    setSelectedCategoryIds((prev) => {
       const newSelection = prev.includes(categoryId)
-        ? prev.filter(id => id !== categoryId)
+        ? prev.filter((id) => id !== categoryId)
         : [...prev, categoryId];
-      
+
       // Update form data with the new category selection
-      setFormData(prev => ({
+      setFormData((prev) => ({
         ...prev,
         categories: newSelection,
       }));
-      
+
       return newSelection;
     });
   };
 
-  const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
+  const handleChange = (
+    e: React.ChangeEvent<
+      HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement
+    >,
+  ) => {
     const { name, value, type } = e.target as HTMLInputElement;
-    
+
     if (type === 'checkbox') {
       const checked = (e.target as HTMLInputElement).checked;
-      setFormData(prev => ({
+      setFormData((prev) => ({
         ...prev,
         [name]: checked,
       }));
     } else {
-      setFormData(prev => ({
+      setFormData((prev) => ({
         ...prev,
         [name]: value,
       }));
@@ -157,7 +172,9 @@ export default function NewPostPage() {
     setFeaturedImage(null);
     setPreviewImage(null);
     // Clear the file input
-    const fileInput = document.getElementById('featured-image') as HTMLInputElement;
+    const fileInput = document.getElementById(
+      'featured-image',
+    ) as HTMLInputElement;
     if (fileInput) {
       fileInput.value = '';
     }
@@ -179,7 +196,7 @@ export default function NewPostPage() {
   };
 
   const removeTag = (tagToRemove: string) => {
-    setSelectedTags(selectedTags.filter(tag => tag !== tagToRemove));
+    setSelectedTags(selectedTags.filter((tag) => tag !== tagToRemove));
   };
 
   const generateSlug = (title: string) => {
@@ -194,15 +211,28 @@ export default function NewPostPage() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsSubmitting(true);
-    
+
+    if (!user?.id) {
+      toast({
+        title: 'Error',
+        description: 'User not authenticated. Please log in.',
+        variant: 'destructive',
+      });
+      setIsSubmitting(false);
+      return;
+    }
+
     try {
       let imageUrl = formData.featured_image;
-      
+
       // Handle image upload if a new image is selected
       if (featuredImage) {
         try {
           // Upload the image first
-          const uploadResponse = await apiClient.uploadFile(featuredImage, 'blog');
+          const uploadResponse = await apiClient.uploadFile(
+            featuredImage,
+            'blog',
+          );
           imageUrl = uploadResponse.url;
           console.log('Image uploaded successfully:', imageUrl);
         } catch (error) {
@@ -216,7 +246,12 @@ export default function NewPostPage() {
           return;
         }
       }
-      
+
+      // Get the full category objects based on their IDs
+      const postCategories = availableCategories.filter((category) =>
+        selectedCategoryIds.includes(category.id),
+      );
+
       // Prepare post data with the uploaded image URL
       const postData = {
         title: formData.title,
@@ -228,36 +263,36 @@ export default function NewPostPage() {
         seo_title: formData.metaTitle || undefined,
         seo_description: formData.metaDescription || undefined,
         seo_keywords: formData.seo_keywords || undefined,
-        categories: [...selectedCategoryIds],
+        categories: postCategories, // Corrected: Pass the full category objects
         featured: formData.featured || false,
         allow_comments: formData.allowComments !== false,
+        author_id: user.id,
       };
-      
+
       console.log('Creating post with data:', postData);
       await createBlogPost(postData);
-      
+
       toast({
         title: 'Success!',
         description: 'Your post has been created successfully.',
       });
-      
+
       // Redirect to posts list
       router.push('/admin/posts');
-      
     } catch (error) {
       console.error('Error creating post:', error);
-      
+
       let errorMessage = 'Failed to create post';
       if (error instanceof Error) {
         errorMessage = error.message;
       }
-      
+
       toast({
         title: 'Error',
         description: errorMessage,
         variant: 'destructive',
       });
-      
+
       setIsSubmitting(false);
     }
   };
@@ -280,38 +315,52 @@ export default function NewPostPage() {
             Create a new blog post
           </p>
         </div>
-        
+
         <div className="flex space-x-3">
-          <Button 
-            variant="outline" 
+          <Button
+            variant="outline"
             onClick={() => router.back()}
             disabled={isSubmitting}
           >
             Cancel
           </Button>
-          <Button 
+          <Button
             onClick={() => {
               console.log('🔍 Debug Info:');
               console.log('User:', user);
               console.log('API URL:', process.env.NEXT_PUBLIC_API_URL);
               console.log('Form Data:', formData);
-              alert(`User: ${user ? 'Logged in' : 'Not logged in'}\nAPI URL: ${process.env.NEXT_PUBLIC_API_URL || 'Not set'}`);
+              alert(
+                `User: ${user ? 'Logged in' : 'Not logged in'}\nAPI URL: ${process.env.NEXT_PUBLIC_API_URL || 'Not set'}`,
+              );
             }}
             variant="outline"
             className="ml-2"
           >
             Debug Info
           </Button>
-          <Button 
-            type="submit" 
-            form="post-form"
-            disabled={isSubmitting}
-          >
+          <Button type="submit" form="post-form" disabled={isSubmitting}>
             {isSubmitting ? (
               <>
-                <svg className="animate-spin -ml-1 mr-2 h-4 w-4" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                  <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                  <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                <svg
+                  className="animate-spin -ml-1 mr-2 h-4 w-4"
+                  xmlns="http://www.w3.org/2000/svg"
+                  fill="none"
+                  viewBox="0 0 24 24"
+                >
+                  <circle
+                    className="opacity-25"
+                    cx="12"
+                    cy="12"
+                    r="10"
+                    stroke="currentColor"
+                    strokeWidth="4"
+                  ></circle>
+                  <path
+                    className="opacity-75"
+                    fill="currentColor"
+                    d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
+                  ></path>
                 </svg>
                 Saving...
               </>
@@ -341,8 +390,11 @@ export default function NewPostPage() {
                     onChange={(e) => {
                       handleChange(e);
                       // Auto-generate slug when title changes
-                      if (!formData.slug || formData.slug === generateSlug(formData.title)) {
-                        setFormData(prev => ({
+                      if (
+                        !formData.slug ||
+                        formData.slug === generateSlug(formData.title)
+                      ) {
+                        setFormData((prev) => ({
                           ...prev,
                           slug: generateSlug(e.target.value),
                         }));
@@ -364,7 +416,8 @@ export default function NewPostPage() {
                     required
                   />
                   <p className="text-xs text-gray-500 dark:text-gray-400">
-                    The slug is used in the URL. Only letters, numbers, and hyphens are allowed.
+                    The slug is used in the URL. Only letters, numbers, and
+                    hyphens are allowed.
                   </p>
                 </div>
 
@@ -452,25 +505,45 @@ export default function NewPostPage() {
                 )}
               </CardContent>
             </Card>
-            
+
             <div className="flex justify-end space-x-3 mt-6">
-              <Button 
+              <Button
                 type="button"
                 variant="outline"
                 onClick={() => {
-                  setFormData(prev => ({ ...prev, status: 'draft' }));
+                  setFormData((prev) => ({ ...prev, status: 'draft' }));
                   // Submit the form programmatically
                   const form = document.querySelector('form');
                   if (form) form.requestSubmit();
                 }}
                 disabled={isSubmitting}
-                className={formData.status === 'draft' ? 'bg-gray-100 dark:bg-gray-800' : ''}
+                className={
+                  formData.status === 'draft'
+                    ? 'bg-gray-100 dark:bg-gray-800'
+                    : ''
+                }
               >
                 {isSubmitting && formData.status === 'draft' ? (
                   <>
-                    <svg className="animate-spin -ml-1 mr-2 h-4 w-4" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                      <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                      <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                    <svg
+                      className="animate-spin -ml-1 mr-2 h-4 w-4"
+                      xmlns="http://www.w3.org/2000/svg"
+                      fill="none"
+                      viewBox="0 0 24 24"
+                    >
+                      <circle
+                        className="opacity-25"
+                        cx="12"
+                        cy="12"
+                        r="10"
+                        stroke="currentColor"
+                        strokeWidth="4"
+                      ></circle>
+                      <path
+                        className="opacity-75"
+                        fill="currentColor"
+                        d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
+                      ></path>
                     </svg>
                     Saving...
                   </>
@@ -478,16 +551,28 @@ export default function NewPostPage() {
                   'Save Draft'
                 )}
               </Button>
-              <Button 
-                type="submit" 
-                form="post-form"
-                disabled={isSubmitting}
-              >
+              <Button type="submit" form="post-form" disabled={isSubmitting}>
                 {isSubmitting ? (
                   <>
-                    <svg className="animate-spin -ml-1 mr-2 h-4 w-4" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                      <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                      <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                    <svg
+                      className="animate-spin -ml-1 mr-2 h-4 w-4"
+                      xmlns="http://www.w3.org/2000/svg"
+                      fill="none"
+                      viewBox="0 0 24 24"
+                    >
+                      <circle
+                        className="opacity-25"
+                        cx="12"
+                        cy="12"
+                        r="10"
+                        stroke="currentColor"
+                        strokeWidth="4"
+                      ></circle>
+                      <path
+                        className="opacity-75"
+                        fill="currentColor"
+                        d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
+                      ></path>
                     </svg>
                     Publishing...
                   </>
@@ -520,27 +605,27 @@ export default function NewPostPage() {
                   <option value="published">Published</option>
                 </select>
               </div>
-              
+
               <div className="flex items-center justify-between">
                 <Label htmlFor="featured">Featured</Label>
                 <Switch
                   id="featured"
                   name="featured"
                   checked={formData.featured}
-                  onCheckedChange={(checked) => 
-                    setFormData(prev => ({ ...prev, featured: checked }))
+                  onCheckedChange={(checked) =>
+                    setFormData((prev) => ({ ...prev, featured: checked }))
                   }
                 />
               </div>
-              
+
               <div className="flex items-center justify-between">
                 <Label htmlFor="allowComments">Allow Comments</Label>
                 <Switch
                   id="allowComments"
                   name="allowComments"
                   checked={formData.allowComments}
-                  onCheckedChange={(checked) => 
-                    setFormData(prev => ({ ...prev, allowComments: checked }))
+                  onCheckedChange={(checked) =>
+                    setFormData((prev) => ({ ...prev, allowComments: checked }))
                   }
                 />
               </div>
@@ -558,11 +643,15 @@ export default function NewPostPage() {
                   {isLoadingCategories ? (
                     <div>Loading categories...</div>
                   ) : availableCategories.length > 0 ? (
-                    availableCategories.map(category => (
+                    availableCategories.map((category) => (
                       <Button
                         key={category.id}
                         type="button"
-                        variant={selectedCategoryIds.includes(category.id) ? 'default' : 'outline'}
+                        variant={
+                          selectedCategoryIds.includes(category.id)
+                            ? 'default'
+                            : 'outline'
+                        }
                         onClick={() => toggleCategory(category.id)}
                         className="rounded-full"
                       >
@@ -570,7 +659,9 @@ export default function NewPostPage() {
                       </Button>
                     ))
                   ) : (
-                    <div className="text-sm text-muted-foreground">No categories found</div>
+                    <div className="text-sm text-muted-foreground">
+                      No categories found
+                    </div>
                   )}
                 </div>
               </div>
@@ -584,7 +675,11 @@ export default function NewPostPage() {
             <CardContent className="space-y-4">
               <div className="flex flex-wrap gap-2">
                 {selectedTags.map((tag) => (
-                  <Badge key={tag} variant="outline" className="flex items-center gap-1">
+                  <Badge
+                    key={tag}
+                    variant="outline"
+                    className="flex items-center gap-1"
+                  >
                     {tag}
                     <button
                       type="button"
@@ -592,11 +687,12 @@ export default function NewPostPage() {
                       className="text-gray-400 hover:text-gray-900 dark:hover:text-gray-100"
                     >
                       <X className="h-3 w-3" />
+                      <span className="sr-only">Remove tag</span>
                     </button>
                   </Badge>
                 ))}
               </div>
-              
+
               <div className="relative">
                 <Input
                   type="text"
@@ -616,14 +712,14 @@ export default function NewPostPage() {
                   <Plus className="h-4 w-4" />
                 </Button>
               </div>
-              
+
               <div className="text-xs text-gray-500 dark:text-gray-400">
                 <p>Popular tags: </p>
                 <div className="mt-1 flex flex-wrap gap-1">
                   {allTags
-                    .filter(tag => !selectedTags.includes(tag))
+                    .filter((tag) => !selectedTags.includes(tag))
                     .slice(0, 5)
-                    .map(tag => (
+                    .map((tag) => (
                       <button
                         key={tag}
                         type="button"
@@ -660,7 +756,7 @@ export default function NewPostPage() {
                   Recommended: 50-60 characters
                 </p>
               </div>
-              
+
               <div className="space-y-2">
                 <Label htmlFor="metaDescription">Meta Description</Label>
                 <Textarea
@@ -675,7 +771,21 @@ export default function NewPostPage() {
                   Recommended: 150-160 characters
                 </p>
               </div>
-              
+
+              <div className="space-y-2">
+                <Label htmlFor="seo_keywords">SEO Keywords</Label>
+                <Input
+                  id="seo_keywords"
+                  name="seo_keywords"
+                  value={formData.seo_keywords}
+                  onChange={handleChange}
+                  placeholder="e.g., next.js, blog, development"
+                />
+                <p className="text-xs text-gray-500 dark:text-gray-400">
+                  Comma-separated keywords for search engines.
+                </p>
+              </div>
+
               <div className="space-y-2">
                 <Label htmlFor="canonicalUrl">Canonical URL</Label>
                 <Input
@@ -686,7 +796,8 @@ export default function NewPostPage() {
                   placeholder="https://example.com/original-post"
                 />
                 <p className="text-xs text-gray-500 dark:text-gray-400">
-                  If this content was published elsewhere, include the original URL here.
+                  If this content was published elsewhere, include the original
+                  URL here.
                 </p>
               </div>
             </CardContent>
