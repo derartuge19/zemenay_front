@@ -1,0 +1,11 @@
+/** @type {import('next').NextConfig} */
+const nextConfig = {
+  // Removed 'output: export' to enable server-side rendering for dynamic routes
+  eslint: {
+    ignoreDuringBuilds: true,
+  },
+  // Keep images unoptimized since we're not using the Next.js image optimization server
+  images: { unoptimized: true },
+};
+
+module.exports = nextConfig;
