@@ -2,37 +2,22 @@
 
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { apiClient } from '@/lib/api-client';
+import {
+  apiClient,
+  BlogPost as API_BlogPost,
+  Category as API_Category,
+} from '@/lib/api-client';
 import { EditPostForm } from './edit-post-form';
 import { getCategories } from '@/lib/blog-api';
 import { useToast } from '@/hooks/use-toast';
 import { Button } from '@/components/ui/button';
 import { ArrowLeft } from 'lucide-react';
 
-interface BlogPost {
-  id: string;
-  title: string;
-  content: string;
-  excerpt: string;
-  status: 'draft' | 'published';
-  slug: string;
-  featured_image?: string;
-  seo_title?: string;
-  seo_description?: string;
-  seo_keywords?: string;
-  categories?: Array<{ id: string; name: string }>;
-  tags?: Array<{ id: string; name: string }>;
-}
-
-export default function EditPostPage({
-  params,
-}: {
-  params: { id: string }
-}) {
+export default function EditPostPage({ params }: { params: { id: string } }) {
   const router = useRouter();
   const { toast } = useToast();
-  const [post, setPost] = useState<BlogPost | null>(null);
-  const [categories, setCategories] = useState<Array<{ id: string; name: string }>>([]);
+  const [post, setPost] = useState<API_BlogPost | null>(null);
+  const [categories, setCategories] = useState<API_Category[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -47,9 +32,17 @@ export default function EditPostPage({
         }
         setPost(postData);
 
-        // Fetch categories
+        // Fetch categories and map missing fields to default values
         const categoriesData = await getCategories();
-        setCategories(categoriesData);
+        const mappedCategories: API_Category[] = categoriesData.map((c) => ({
+          id: c.id,
+          name: c.name,
+          slug: c.slug || c.name.toLowerCase().replace(/\s+/g, '-'),
+          status: c.status || 'active',
+          created_at: c.created_at || new Date().toISOString(),
+          updated_at: c.updated_at || new Date().toISOString(),
+        }));
+        setCategories(mappedCategories);
       } catch (err) {
         console.error('Error fetching data:', err);
         setError('Failed to load data. Please try again.');
@@ -83,8 +76,16 @@ export default function EditPostPage({
         <div className="bg-red-50 border-l-4 border-red-400 p-4">
           <div className="flex">
             <div className="flex-shrink-0">
-              <svg className="h-5 w-5 text-red-400" viewBox="0 0 20 20" fill="currentColor">
-                <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clipRule="evenodd" />
+              <svg
+                className="h-5 w-5 text-red-400"
+                viewBox="0 0 20 20"
+                fill="currentColor"
+              >
+                <path
+                  fillRule="evenodd"
+                  d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z"
+                  clipRule="evenodd"
+                />
               </svg>
             </div>
             <div className="ml-3">
@@ -96,9 +97,7 @@ export default function EditPostPage({
     );
   }
 
-  if (!post) {
-    return null;
-  }
+  if (!post) return null;
 
   return (
     <div className="container py-8">
@@ -114,13 +113,11 @@ export default function EditPostPage({
         </Button>
       </div>
 
-      {post && (
-        <EditPostForm 
-          postId={post.id} 
-          initialPost={post} 
-          categories={categories} 
-        />
-      )}
+      <EditPostForm
+        postId={post.id!}
+        initialPost={post}
+        categories={categories}
+      />
     </div>
   );
 }
