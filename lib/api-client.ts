@@ -33,6 +33,7 @@ export interface Category {
   id: string;
   name: string;
   slug: string;
+  description?: string | null;
   created_at: string;
   posts_count?: number;
 }
@@ -66,13 +67,13 @@ export class ApiError extends Error {
   status: number;
   errors?: any;
   details?: any;
-  
+
   constructor(message: string, status: number, errors?: any) {
     super(message);
     this.name = 'ApiError';
     this.status = status;
     this.errors = errors;
-    
+
     // Capture the full error details for debugging
     this.details = {
       message,
@@ -80,12 +81,12 @@ export class ApiError extends Error {
       errors,
       timestamp: new Date().toISOString(),
     };
-    
+
     // Ensure the stack trace is captured
     if (Error.captureStackTrace) {
       Error.captureStackTrace(this, ApiError);
     }
-    
+
     // Log the error for debugging
     console.error('API Error:', {
       name: this.name,
@@ -95,7 +96,7 @@ export class ApiError extends Error {
       stack: this.stack,
     });
   }
-  
+
   // Helper to create an ApiError from a fetch response
   static async fromResponse(response: Response): Promise<ApiError> {
     try {
@@ -103,13 +104,13 @@ export class ApiError extends Error {
       return new ApiError(
         data.message || response.statusText || 'An error occurred',
         response.status,
-        data.errors || data
+        data.errors || data,
       );
     } catch (e) {
       return new ApiError(
         response.statusText || 'An error occurred',
         response.status,
-        { message: 'Failed to parse error response' }
+        { message: 'Failed to parse error response' },
       );
     }
   }
@@ -145,7 +146,7 @@ class ApiClient {
 
   private async request<T>(
     endpoint: string,
-    options: RequestInit = {}
+    options: RequestInit = {},
   ): Promise<T> {
     const url = `${this.baseURL}${endpoint}`;
     const headers = new Headers({
@@ -162,7 +163,7 @@ class ApiClient {
       console.log(`Making ${options.method || 'GET'} request to:`, url);
       console.log('Request headers:', Object.fromEntries(headers.entries()));
       console.log('Request body:', options.body);
-      
+
       const response = await fetch(url, {
         ...options,
         headers,
@@ -170,7 +171,7 @@ class ApiClient {
       });
 
       console.log('Response status:', response.status, response.statusText);
-      
+
       // Handle 204 No Content
       if (response.status === 204) {
         return null as unknown as T;
@@ -190,7 +191,7 @@ class ApiClient {
           throw new ApiError(
             'Invalid JSON response from server',
             response.status,
-            { responseText: text }
+            { responseText: text },
           );
         }
       } else {
@@ -207,11 +208,11 @@ class ApiClient {
           response: data,
           headers: Object.fromEntries(response.headers.entries()),
         });
-        
+
         throw new ApiError(
           data.message || response.statusText || 'An error occurred',
           response.status,
-          data.errors || data
+          data.errors || data,
         );
       }
 
@@ -274,7 +275,7 @@ class ApiClient {
     if (params?.categoryId) query.append('categoryId', params.categoryId);
 
     return this.request<{ data: BlogPost[]; total: number }>(
-      `/posts?${query.toString()}`
+      `/posts?${query.toString()}`,
     );
   }
 
@@ -286,7 +287,9 @@ class ApiClient {
     return this.request<BlogPost>(`/posts/slug/${slug}`);
   }
 
-  async createPost(postData: Omit<BlogPost, 'id' | 'created_at' | 'updated_at'>): Promise<BlogPost> {
+  async createPost(
+    postData: Omit<BlogPost, 'id' | 'created_at' | 'updated_at'>,
+  ): Promise<BlogPost> {
     return this.request<BlogPost>('/posts', {
       method: 'POST',
       body: JSON.stringify(postData),
@@ -295,40 +298,46 @@ class ApiClient {
 
   async updatePost(
     id: string,
-    updates: Partial<Omit<BlogPost, 'id' | 'created_at' | 'updated_at'>>
+    updates: Partial<Omit<BlogPost, 'id' | 'created_at' | 'updated_at'>>,
   ): Promise<BlogPost> {
     console.log('Original updates:', JSON.stringify(updates, null, 2));
-    
+
     // Transform the updates to match the backend's expected format
     const transformedUpdates: any = { ...updates };
-    
+
     // Handle tags - ensure it's an array of strings (IDs)
     if (updates.tags) {
-      transformedUpdates.tags = updates.tags.map(tag => {
+      transformedUpdates.tags = updates.tags.map((tag) => {
         if (typeof tag === 'string') return tag;
         return tag.id;
       });
       console.log('Transformed tags:', transformedUpdates.tags);
     }
-    
+
     // Handle categories - ensure it's an array of strings (IDs)
     if (updates.categories) {
-      transformedUpdates.categories = updates.categories.map(cat => {
+      transformedUpdates.categories = updates.categories.map((cat) => {
         if (typeof cat === 'string') return cat;
         return cat.id;
       });
       console.log('Transformed categories:', transformedUpdates.categories);
     }
-    
+
     // Ensure we're not sending undefined or null values
-    Object.keys(transformedUpdates).forEach(key => {
-      if (transformedUpdates[key] === undefined || transformedUpdates[key] === null) {
+    Object.keys(transformedUpdates).forEach((key) => {
+      if (
+        transformedUpdates[key] === undefined ||
+        transformedUpdates[key] === null
+      ) {
         delete transformedUpdates[key];
       }
     });
-    
-    console.log('Sending transformed update:', JSON.stringify(transformedUpdates, null, 2));
-    
+
+    console.log(
+      'Sending transformed update:',
+      JSON.stringify(transformedUpdates, null, 2),
+    );
+
     return this.request<BlogPost>(`/posts/${id}`, {
       method: 'PUT',
       body: JSON.stringify(transformedUpdates),
@@ -435,14 +444,17 @@ class ApiClient {
   }
 
   // File upload
-  async uploadFile(file: File, folder: string = 'uploads'): Promise<{ url: string }> {
+  async uploadFile(
+    file: File,
+    folder: string = 'uploads',
+  ): Promise<{ url: string }> {
     const formData = new FormData();
     formData.append('file', file);
     formData.append('folder', folder);
 
     // Create headers object
     const headers: Record<string, string> = {
-      'Accept': 'application/json',
+      Accept: 'application/json',
     };
 
     // Add auth token if available
@@ -452,7 +464,7 @@ class ApiClient {
 
     // Remove /api from the URL since the backend doesn't use it
     const baseUrl = this.baseURL.replace('/api', '');
-    
+
     // Use fetch directly to avoid the request wrapper which might be causing issues
     const response = await fetch(`${baseUrl}/upload`, {
       method: 'POST',
@@ -466,7 +478,7 @@ class ApiClient {
       throw new ApiError(
         errorData.message || 'Failed to upload file',
         response.status,
-        errorData.errors
+        errorData.errors,
       );
     }
 
@@ -476,13 +488,18 @@ class ApiClient {
   // Analytics methods
   async getDashboardStats() {
     try {
-      console.log('Fetching dashboard stats from:', `${this.baseURL}/analytics/dashboard`);
-      
+      console.log(
+        'Fetching dashboard stats from:',
+        `${this.baseURL}/analytics/dashboard`,
+      );
+
       const response = await fetch(`${this.baseURL}/analytics/dashboard`, {
         method: 'GET',
         headers: {
           'Content-Type': 'application/json',
-          ...(this.accessToken && { 'Authorization': `Bearer ${this.accessToken}` }),
+          ...(this.accessToken && {
+            Authorization: `Bearer ${this.accessToken}`,
+          }),
         },
         credentials: 'include',
       });
@@ -492,12 +509,14 @@ class ApiClient {
           status: response.status,
           statusText: response.statusText,
         });
-        throw new Error(`Failed to fetch dashboard stats: ${response.status} ${response.statusText}`);
+        throw new Error(
+          `Failed to fetch dashboard stats: ${response.status} ${response.statusText}`,
+        );
       }
 
       const data = await response.json();
       console.log('Dashboard stats response:', data);
-      
+
       return {
         totalPosts: data.totalPosts || 0,
         totalUsers: data.totalUsers || 0,
@@ -506,7 +525,7 @@ class ApiClient {
         popularPosts: data.popularPosts || [],
         recentPosts: data.recentPosts || [],
         postsByStatus: data.postsByStatus || [],
-        monthlyStats: data.monthlyStats || []
+        monthlyStats: data.monthlyStats || [],
       };
     } catch (error) {
       console.error('Error in getDashboardStats:', error);

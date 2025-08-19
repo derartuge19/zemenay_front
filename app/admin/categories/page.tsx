@@ -2,7 +2,15 @@
 
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import { Plus, Search, Edit, Trash2, ChevronDown, ChevronUp, Loader2 } from 'lucide-react';
+import {
+  Plus,
+  Search,
+  Edit,
+  Trash2,
+  ChevronDown,
+  ChevronUp,
+  Loader2,
+} from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
@@ -21,14 +29,23 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
-import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog';
 import { apiClient } from '@/lib/api-client';
 
 type Category = {
   id: string;
   name: string;
   slug: string;
-  description: string | null;
+  description?: string | null;
   status: 'active' | 'inactive';
   created_at: string;
   updated_at: string;
@@ -68,11 +85,11 @@ export default function CategoriesPage() {
 
   const handleConfirmDelete = async () => {
     if (!categoryToDelete) return;
-    
+
     try {
       setIsDeleting(true);
       await apiClient.deleteCategory(categoryToDelete);
-      setCategories(categories.filter(cat => cat.id !== categoryToDelete));
+      setCategories(categories.filter((cat) => cat.id !== categoryToDelete));
       toast.success('Category deleted successfully');
     } catch (error) {
       console.error('Error deleting category:', error);
@@ -84,9 +101,11 @@ export default function CategoriesPage() {
     }
   };
 
-  const filteredCategories = categories.filter(category =>
-    category.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    (category.description && category.description.toLowerCase().includes(searchTerm.toLowerCase()))
+  const filteredCategories = categories.filter(
+    (category) =>
+      category.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      (category.description &&
+        category.description.toLowerCase().includes(searchTerm.toLowerCase())),
   );
 
   if (isLoading) {
@@ -102,9 +121,7 @@ export default function CategoriesPage() {
       <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
         <div>
           <h1 className="text-2xl font-bold">Categories</h1>
-          <p className="text-muted-foreground">
-            Manage your blog categories
-          </p>
+          <p className="text-muted-foreground">Manage your blog categories</p>
         </div>
         <Button onClick={() => router.push('/admin/categories/new')}>
           <Plus className="mr-2 h-4 w-4" /> Add Category
@@ -139,9 +156,15 @@ export default function CategoriesPage() {
               filteredCategories.map((category) => (
                 <TableRow key={category.id}>
                   <TableCell className="font-medium">{category.name}</TableCell>
-                  <TableCell className="text-muted-foreground">{category.slug}</TableCell>
+                  <TableCell className="text-muted-foreground">
+                    {category.slug}
+                  </TableCell>
                   <TableCell>
-                    <Badge variant={category.status === 'active' ? 'default' : 'secondary'}>
+                    <Badge
+                      variant={
+                        category.status === 'active' ? 'default' : 'secondary'
+                      }
+                    >
                       {category.status}
                     </Badge>
                   </TableCell>
@@ -156,14 +179,16 @@ export default function CategoriesPage() {
                         </Button>
                       </DropdownMenuTrigger>
                       <DropdownMenuContent align="end">
-                        <DropdownMenuItem 
-                          onClick={() => router.push(`/admin/categories/${category.id}`)}
+                        <DropdownMenuItem
+                          onClick={() =>
+                            router.push(`/admin/categories/${category.id}`)
+                          }
                           className="cursor-pointer"
                         >
                           <Edit className="mr-2 h-4 w-4" />
                           Edit
                         </DropdownMenuItem>
-                        <DropdownMenuItem 
+                        <DropdownMenuItem
                           onClick={() => handleDeleteClick(category.id)}
                           className="text-red-600 cursor-pointer"
                         >
@@ -177,8 +202,13 @@ export default function CategoriesPage() {
               ))
             ) : (
               <TableRow>
-                <TableCell colSpan={5} className="text-center py-8 text-muted-foreground">
-                  {searchTerm ? 'No categories match your search' : 'No categories found'}
+                <TableCell
+                  colSpan={5}
+                  className="text-center py-8 text-muted-foreground"
+                >
+                  {searchTerm
+                    ? 'No categories match your search'
+                    : 'No categories found'}
                 </TableCell>
               </TableRow>
             )}
@@ -191,12 +221,13 @@ export default function CategoriesPage() {
           <AlertDialogHeader>
             <AlertDialogTitle>Are you sure?</AlertDialogTitle>
             <AlertDialogDescription>
-              This action cannot be undone. This will permanently delete the category.
+              This action cannot be undone. This will permanently delete the
+              category.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
             <AlertDialogCancel disabled={isDeleting}>Cancel</AlertDialogCancel>
-            <AlertDialogAction 
+            <AlertDialogAction
               onClick={handleConfirmDelete}
               disabled={isDeleting}
               className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
@@ -206,7 +237,9 @@ export default function CategoriesPage() {
                   <Loader2 className="mr-2 h-4 w-4 animate-spin" />
                   Deleting...
                 </>
-              ) : 'Delete'}
+              ) : (
+                'Delete'
+              )}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
