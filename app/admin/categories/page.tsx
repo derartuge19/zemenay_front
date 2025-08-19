@@ -2,15 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import {
-  Plus,
-  Search,
-  Edit,
-  Trash2,
-  ChevronDown,
-  ChevronUp,
-  Loader2,
-} from 'lucide-react';
+import { Plus, Search, Edit, Trash2, ChevronDown, Loader2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
@@ -39,20 +31,13 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
-import { apiClient } from '@/lib/api-client';
 
-type Category = {
-  id: string;
-  name: string;
-  slug: string;
-  description?: string | null;
-  status: 'active' | 'inactive';
-  created_at: string;
-  updated_at: string;
-};
+// Import the correct Category type from the shared API client file
+import { apiClient, Category } from '@/lib/api-client';
 
 export default function CategoriesPage() {
   const router = useRouter();
+
   const [categories, setCategories] = useState<Category[]>([]);
   const [searchTerm, setSearchTerm] = useState('');
   const [isLoading, setIsLoading] = useState(true);
@@ -65,6 +50,7 @@ export default function CategoriesPage() {
     const fetchCategories = async () => {
       try {
         setIsLoading(true);
+        // Now this works without casting because the types are synchronized
         const data = await apiClient.getCategories();
         setCategories(data);
       } catch (error) {

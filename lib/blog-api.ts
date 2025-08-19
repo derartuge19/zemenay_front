@@ -162,11 +162,14 @@ export const getRelatedPosts = async (
 ): Promise<BlogPost[]> => {
   try {
     // First get all posts in the same category
-    const postsInCategory = await apiClient.getPosts({
+    const response = await apiClient.getPosts({
       categoryId,
       status: 'published',
       limit: limit + 1, // Get one extra to account for the current post
     });
+
+    // Access the data property of the response, which is the array of posts
+    const postsInCategory = response.data;
 
     // Filter out the current post and limit the results
     const related = postsInCategory

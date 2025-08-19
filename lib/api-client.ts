@@ -30,12 +30,15 @@ export interface Tag {
   posts_count?: number;
 }
 
+// Corrected Category type with 'updated_at' property
 export interface Category {
   id: string;
   name: string;
   slug: string;
   description?: string;
+  status: 'active' | 'inactive';
   created_at: string;
+  updated_at: string; // This property was missing
   posts_count?: number;
 }
 
