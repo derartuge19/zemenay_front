@@ -11,6 +11,7 @@ export interface BlogPost {
   status: 'draft' | 'published';
   seo_title?: string;
   seo_description?: string;
+  // seo_keywords?: string; // Added SEO keywords
   seo_keywords?: string;
   created_at?: string;
   updated_at?: string;
@@ -33,10 +34,9 @@ export interface Category {
   id: string;
   name: string;
   slug: string;
-  description?: string | null;
-  status: 'active' | 'inactive';
+  description?: string;
   created_at: string;
-  updated_at: string;
+  posts_count?: number;
 }
 
 export interface User {
