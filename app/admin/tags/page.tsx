@@ -1,4 +1,4 @@
-'use client';
+// 'use client';
 
 import { useState } from 'react';
 import Link from 'next/link';
@@ -7,23 +7,63 @@ import { Search, Plus, Pencil, Trash2, ArrowUpDown } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from '@/components/ui/table';
 import { useToast } from '@/hooks/use-toast';
 
 // Mock data - replace with actual API call
 const tags = [
-  { id: '1', name: 'nextjs', slug: 'nextjs', description: 'Next.js framework', postCount: 24 },
-  { id: '2', name: 'react', slug: 'react', description: 'React library', postCount: 42 },
-  { id: '3', name: 'typescript', slug: 'typescript', description: 'TypeScript language', postCount: 18 },
-  { id: '4', name: 'javascript', slug: 'javascript', description: 'JavaScript language', postCount: 37 },
-  { id: '5', name: 'tailwind', slug: 'tailwind', description: 'Tailwind CSS framework', postCount: 15 },
+  {
+    id: '1',
+    name: 'nextjs',
+    slug: 'nextjs',
+    description: 'Next.js framework',
+    postCount: 24,
+  },
+  {
+    id: '2',
+    name: 'react',
+    slug: 'react',
+    description: 'React library',
+    postCount: 42,
+  },
+  {
+    id: '3',
+    name: 'typescript',
+    slug: 'typescript',
+    description: 'TypeScript language',
+    postCount: 18,
+  },
+  {
+    id: '4',
+    name: 'javascript',
+    slug: 'javascript',
+    description: 'JavaScript language',
+    postCount: 37,
+  },
+  {
+    id: '5',
+    name: 'tailwind',
+    slug: 'tailwind',
+    description: 'Tailwind CSS framework',
+    postCount: 15,
+  },
 ];
 
 export default function TagsPage() {
   const router = useRouter();
   const { toast } = useToast();
   const [searchTerm, setSearchTerm] = useState('');
-  const [sortConfig, setSortConfig] = useState<{ key: string; direction: 'asc' | 'desc' } | null>({
+  const [sortConfig, setSortConfig] = useState<{
+    key: string;
+    direction: 'asc' | 'desc';
+  } | null>({
     key: 'name',
     direction: 'asc',
   });
@@ -37,22 +77,26 @@ export default function TagsPage() {
   };
 
   const handleDelete = async (id: string, name: string) => {
-    if (!confirm(`Are you sure you want to delete the tag "${name}"? This action cannot be undone.`)) {
+    if (
+      !confirm(
+        `Are you sure you want to delete the tag "${name}"? This action cannot be undone.`,
+      )
+    ) {
       return;
     }
 
     try {
       // TODO: Replace with actual API call
       console.log('Deleting tag:', id);
-      
+
       // Simulate API call
-      await new Promise(resolve => setTimeout(resolve, 1000));
-      
+      await new Promise((resolve) => setTimeout(resolve, 1000));
+
       toast({
         title: 'Tag deleted',
         description: `The tag "${name}" has been successfully deleted.`,
       });
-      
+
       // Refresh the page to show updated data
       router.refresh();
     } catch (error) {
@@ -67,18 +111,19 @@ export default function TagsPage() {
 
   // Filter and sort tags
   const filteredTags = tags
-    .filter(tag => 
-      tag.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      tag.description?.toLowerCase().includes(searchTerm.toLowerCase())
+    .filter(
+      (tag) =>
+        tag.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        tag.description?.toLowerCase().includes(searchTerm.toLowerCase()),
     )
     .sort((a, b) => {
       if (!sortConfig) return 0;
-      
+
       const aValue = a[sortConfig.key as keyof typeof a];
       const bValue = b[sortConfig.key as keyof typeof b];
-      
+
       if (aValue === bValue) return 0;
-      
+
       if (sortConfig.direction === 'asc') {
         return aValue > bValue ? 1 : -1;
       } else {
@@ -118,7 +163,7 @@ export default function TagsPage() {
         <Table>
           <TableHeader>
             <TableRow>
-              <TableHead 
+              <TableHead
                 className="cursor-pointer hover:bg-accent"
                 onClick={() => handleSort('name')}
               >
@@ -129,7 +174,7 @@ export default function TagsPage() {
               </TableHead>
               <TableHead>Slug</TableHead>
               <TableHead>Description</TableHead>
-              <TableHead 
+              <TableHead
                 className="text-right cursor-pointer hover:bg-accent"
                 onClick={() => handleSort('postCount')}
               >
@@ -146,7 +191,10 @@ export default function TagsPage() {
               filteredTags.map((tag) => (
                 <TableRow key={tag.id}>
                   <TableCell className="font-medium">
-                    <Link href={`/admin/tags/${tag.id}`} className="hover:underline">
+                    <Link
+                      href={`/admin/tags/${tag.id}`}
+                      className="hover:underline"
+                    >
                       {tag.name}
                     </Link>
                   </TableCell>
@@ -171,8 +219,8 @@ export default function TagsPage() {
                           <span className="sr-only">Edit</span>
                         </Link>
                       </Button>
-                      <Button 
-                        variant="ghost" 
+                      <Button
+                        variant="ghost"
                         size="icon"
                         onClick={() => handleDelete(tag.id, tag.name)}
                         className="text-destructive hover:bg-destructive/10"
@@ -190,7 +238,10 @@ export default function TagsPage() {
                   {searchTerm ? (
                     <div className="space-y-2">
                       <p>No tags found matching "{searchTerm}"</p>
-                      <Button variant="outline" onClick={() => setSearchTerm('')}>
+                      <Button
+                        variant="outline"
+                        onClick={() => setSearchTerm('')}
+                      >
                         Clear search
                       </Button>
                     </div>
