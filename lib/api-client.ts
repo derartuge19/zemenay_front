@@ -34,8 +34,9 @@ export interface Category {
   name: string;
   slug: string;
   description?: string | null;
+  status: 'active' | 'inactive';
   created_at: string;
-  posts_count?: number;
+  updated_at: string;
 }
 
 export interface User {
