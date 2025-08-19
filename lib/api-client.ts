@@ -11,14 +11,13 @@ export interface BlogPost {
   status: 'draft' | 'published';
   seo_title?: string;
   seo_description?: string;
-  // seo_keywords?: string; // Added SEO keywords
   seo_keywords?: string;
   created_at?: string;
   updated_at?: string;
   author_id: string;
   slug?: string;
   tags?: Tag[];
-  author?: User;
+  author?: UserType; // Corrected to use UserType
   categories?: Category[];
 }
 
@@ -30,6 +29,20 @@ export interface Tag {
   posts_count?: number;
 }
 
+// Consolidated User type
+export interface UserType {
+  id: string;
+  email: string;
+  username: string;
+  role: 'admin' | 'editor' | 'author' | 'user' | 'guest' | string; // Keep `string` for flexibility
+  is_active: boolean;
+  created_at: string;
+  updated_at: string;
+  last_login?: string;
+  avatar_url?: string;
+  bio?: string;
+}
+
 // Corrected Category type with 'updated_at' property
 export interface Category {
   id: string;
@@ -38,25 +51,14 @@ export interface Category {
   description?: string;
   status: 'active' | 'inactive';
   created_at: string;
-  updated_at: string; // This property was missing
-  posts_count?: number;
-}
-
-export interface User {
-  id: string;
-  email: string;
-  username: string;
-  role: string;
-  avatar_url?: string;
-  bio?: string;
-  created_at: string;
   updated_at: string;
+  posts_count?: number;
 }
 
 export interface AuthResponse {
   access_token: string;
   refresh_token?: string;
-  user: User;
+  user: UserType; // Corrected to use UserType
 }
 
 // Renamed from ApiError to IApiError to avoid naming conflict
@@ -259,8 +261,9 @@ class ApiClient {
     }
   }
 
-  async getCurrentUser(): Promise<User> {
-    return this.request<User>('/auth/me');
+  async getCurrentUser(): Promise<UserType> {
+    // Corrected to use UserType
+    return this.request<UserType>('/auth/me');
   }
 
   // Posts methods
@@ -306,10 +309,8 @@ class ApiClient {
   ): Promise<BlogPost> {
     console.log('Original updates:', JSON.stringify(updates, null, 2));
 
-    // Transform the updates to match the backend's expected format
     const transformedUpdates: any = { ...updates };
 
-    // Handle tags - ensure it's an array of strings (IDs)
     if (updates.tags) {
       transformedUpdates.tags = updates.tags.map((tag) => {
         if (typeof tag === 'string') return tag;
@@ -318,7 +319,6 @@ class ApiClient {
       console.log('Transformed tags:', transformedUpdates.tags);
     }
 
-    // Handle categories - ensure it's an array of strings (IDs)
     if (updates.categories) {
       transformedUpdates.categories = updates.categories.map((cat) => {
         if (typeof cat === 'string') return cat;
@@ -327,7 +327,6 @@ class ApiClient {
       console.log('Transformed categories:', transformedUpdates.categories);
     }
 
-    // Ensure we're not sending undefined or null values
     Object.keys(transformedUpdates).forEach((key) => {
       if (
         transformedUpdates[key] === undefined ||
@@ -397,9 +396,9 @@ class ApiClient {
   }
 
   // Users methods
-  async getUsers(): Promise<User[]> {
-    const response = await this.request<User[]>('/users');
-    return response;
+  async getUsers(): Promise<UserType[]> {
+    // Corrected: Use UserType[]
+    return this.request<UserType[]>('/users');
   }
 
   async createUser(userData: {
@@ -407,17 +406,18 @@ class ApiClient {
     username: string;
     password: string;
     role: string;
-  }): Promise<User> {
-    // Transform the data to match backend's expected format
+  }): Promise<UserType> {
+    // Corrected: Use UserType
     const requestData = {
       email: userData.email,
-      name: userData.username, // Map username to name
+      name: userData.username,
       password: userData.password,
       role: userData.role,
     };
 
     try {
-      return await this.request<User>('/users', {
+      return await this.request<UserType>('/users', {
+        // Corrected: Use UserType
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -426,16 +426,18 @@ class ApiClient {
       });
     } catch (error) {
       console.error('Error creating user:', error);
-      throw error; // Re-throw to be handled by the component
+      throw error;
     }
   }
 
-  async getUser(id: string): Promise<User> {
-    return this.request<User>(`/users/${id}`);
+  async getUser(id: string): Promise<UserType> {
+    // Corrected: Use UserType
+    return this.request<UserType>(`/users/${id}`);
   }
 
-  async updateUser(id: string, data: Partial<User>): Promise<User> {
-    return this.request<User>(`/users/${id}`, {
+  async updateUser(id: string, data: Partial<UserType>): Promise<UserType> {
+    // Corrected: Use UserType
+    return this.request<UserType>(`/users/${id}`, {
       method: 'PUT',
       body: JSON.stringify(data),
     });
@@ -456,25 +458,21 @@ class ApiClient {
     formData.append('file', file);
     formData.append('folder', folder);
 
-    // Create headers object
     const headers: Record<string, string> = {
       Accept: 'application/json',
     };
 
-    // Add auth token if available
     if (this.accessToken) {
       headers['Authorization'] = `Bearer ${this.accessToken}`;
     }
 
-    // Remove /api from the URL since the backend doesn't use it
     const baseUrl = this.baseURL.replace('/api', '');
 
-    // Use fetch directly to avoid the request wrapper which might be causing issues
     const response = await fetch(`${baseUrl}/upload`, {
       method: 'POST',
       body: formData,
       headers,
-      credentials: 'include', // Important for sending cookies
+      credentials: 'include',
     });
 
     if (!response.ok) {

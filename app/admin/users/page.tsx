@@ -1,14 +1,34 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { Search, User, MoreVertical, Ban, Trash2, Loader2, Plus } from 'lucide-react';
+import {
+  Search,
+  User,
+  MoreVertical,
+  Ban,
+  Trash2,
+  Loader2,
+  Plus,
+} from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from '@/components/ui/table';
 import { useToast } from '@/hooks/use-toast';
-import { apiClient } from '@/lib/api-client';
-import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
+import { apiClient, UserType } from '@/lib/api-client';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
 import { useRouter } from 'next/navigation';
 import {
   Dialog,
@@ -21,19 +41,6 @@ import {
 import { Label } from '@/components/ui/label';
 
 type UserRole = 'admin' | 'editor' | 'author' | 'user' | 'guest';
-
-export interface UserType {
-  id: string;
-  email: string;
-  username: string;
-  role: UserRole;
-  is_active: boolean;
-  created_at: string;
-  updated_at: string;
-  last_login?: string;
-  avatar_url?: string;
-  bio?: string;
-}
 
 export default function UsersPage() {
   const [users, setUsers] = useState<UserType[]>([]);
@@ -52,7 +59,6 @@ export default function UsersPage() {
   const { toast } = useToast();
   const router = useRouter();
 
-  // Fetch users from the backend
   useEffect(() => {
     fetchUsers();
   }, []);
@@ -74,7 +80,6 @@ export default function UsersPage() {
     }
   };
 
-  // Sort users by role (admin > editor > author > others)
   const getRolePriority = (role: UserRole): number => {
     const roleOrder: Record<UserRole, number> = {
       admin: 1,
@@ -87,15 +92,17 @@ export default function UsersPage() {
   };
 
   const sortedUsers = [...users].sort((a, b) => {
-    return getRolePriority(a.role) - getRolePriority(b.role);
+    return (
+      getRolePriority(a.role as UserRole) - getRolePriority(b.role as UserRole)
+    );
   });
 
-  const filteredUsers = sortedUsers.filter(user => {
+  const filteredUsers = sortedUsers.filter((user) => {
     const searchLower = searchTerm.toLowerCase();
     const username = user.username || '';
     const email = user.email || '';
     const role = user.role || '';
-    
+
     return (
       username.toLowerCase().includes(searchLower) ||
       email.toLowerCase().includes(searchLower) ||
@@ -105,19 +112,20 @@ export default function UsersPage() {
 
   const handleUpdateUserStatus = async (userId: string, isActive: boolean) => {
     try {
-      setIsUpdating(prev => ({ ...prev, [userId]: true }));
-      
+      setIsUpdating((prev) => ({ ...prev, [userId]: true }));
+
       await apiClient.updateUser(userId, { is_active: isActive });
-      
-      setUsers(users.map(user => 
-        user.id === userId ? { ...user, is_active: isActive } : user
-      ));
-      
+
+      setUsers(
+        users.map((user) =>
+          user.id === userId ? { ...user, is_active: isActive } : user,
+        ),
+      );
+
       toast({
         title: 'Success',
         description: `User has been ${isActive ? 'activated' : 'banned'}.`,
       });
-      
     } catch (error) {
       console.error('Error updating user status:', error);
       toast({
@@ -126,7 +134,7 @@ export default function UsersPage() {
         description: 'Failed to update user status. Please try again.',
       });
     } finally {
-      setIsUpdating(prev => ({ ...prev, [userId]: false }));
+      setIsUpdating((prev) => ({ ...prev, [userId]: false }));
     }
   };
 
@@ -137,13 +145,13 @@ export default function UsersPage() {
 
   const handleDeleteConfirm = async () => {
     if (!userToDelete) return;
-    
+
     try {
-      setIsUpdating(prev => ({ ...prev, [userToDelete.id]: true }));
+      setIsUpdating((prev) => ({ ...prev, [userToDelete.id]: true }));
       await apiClient.deleteUser(userToDelete.id);
-      
-      setUsers(users.filter(user => user.id !== userToDelete.id));
-      
+
+      setUsers(users.filter((user) => user.id !== userToDelete.id));
+
       toast({
         title: 'Success',
         description: 'User has been deleted successfully.',
@@ -156,7 +164,7 @@ export default function UsersPage() {
         description: 'Failed to delete user. Please try again.',
       });
     } finally {
-      setIsUpdating(prev => ({ ...prev, [userToDelete.id]: false }));
+      setIsUpdating((prev) => ({ ...prev, [userToDelete.id]: false }));
       setIsDeleteDialogOpen(false);
       setUserToDelete(null);
     }
@@ -164,20 +172,20 @@ export default function UsersPage() {
 
   const handleCreateUser = async () => {
     try {
-      setIsUpdating(prev => ({ ...prev, create: true }));
-      
+      setIsUpdating((prev) => ({ ...prev, create: true }));
+
       const userData = {
         ...newUser,
         is_active: true,
       };
-      
+
       await apiClient.createUser(userData);
-      
+
       toast({
         title: 'Success',
         description: 'User created successfully.',
       });
-      
+
       setIsCreateDialogOpen(false);
       setNewUser({
         email: '',
@@ -185,10 +193,8 @@ export default function UsersPage() {
         password: '',
         role: 'user',
       });
-      
-      // Refresh users list
+
       fetchUsers();
-      
     } catch (error) {
       console.error('Error creating user:', error);
       toast({
@@ -197,7 +203,7 @@ export default function UsersPage() {
         description: 'Failed to create user. Please try again.',
       });
     } finally {
-      setIsUpdating(prev => ({ ...prev, create: false }));
+      setIsUpdating((prev) => ({ ...prev, create: false }));
     }
   };
 
@@ -209,18 +215,24 @@ export default function UsersPage() {
       user: 'bg-gray-100 text-gray-800',
       guest: 'bg-yellow-100 text-yellow-800',
     };
-    
+
     return (
-      <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${roleColors[role] || 'bg-gray-100 text-gray-800'}`}>
+      <span
+        className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
+          roleColors[role] || 'bg-gray-100 text-gray-800'
+        }`}
+      >
         {role.charAt(0).toUpperCase() + role.slice(1)}
       </span>
     );
   };
 
   const getStatusBadge = (isActive: boolean) => (
-    <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
-      isActive ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'
-    }`}>
+    <span
+      className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
+        isActive ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'
+      }`}
+    >
       {isActive ? 'Active' : 'Banned'}
     </span>
   );
@@ -285,13 +297,15 @@ export default function UsersPage() {
                       <div>
                         <div>{user.username}</div>
                         {user.bio && (
-                          <div className="text-xs text-gray-500 truncate max-w-xs">{user.bio}</div>
+                          <div className="text-xs text-gray-500 truncate max-w-xs">
+                            {user.bio}
+                          </div>
                         )}
                       </div>
                     </div>
                   </TableCell>
                   <TableCell>{user.email}</TableCell>
-                  <TableCell>{getRoleBadge(user.role)}</TableCell>
+                  <TableCell>{getRoleBadge(user.role as UserRole)}</TableCell>
                   <TableCell>{getStatusBadge(user.is_active)}</TableCell>
                   <TableCell>
                     {new Date(user.created_at).toLocaleDateString()}
@@ -305,10 +319,14 @@ export default function UsersPage() {
                         </Button>
                       </DropdownMenuTrigger>
                       <DropdownMenuContent align="end">
-                        <DropdownMenuItem 
-                          onClick={() => handleUpdateUserStatus(user.id, !user.is_active)}
+                        <DropdownMenuItem
+                          onClick={() =>
+                            handleUpdateUserStatus(user.id, !user.is_active)
+                          }
                           disabled={isUpdating[user.id]}
-                          className={user.is_active ? "text-red-600" : "text-green-600"}
+                          className={
+                            user.is_active ? 'text-red-600' : 'text-green-600'
+                          }
                         >
                           {isUpdating[user.id] ? (
                             <Loader2 className="mr-2 h-4 w-4 animate-spin" />
@@ -317,7 +335,7 @@ export default function UsersPage() {
                           )}
                           {user.is_active ? 'Ban User' : 'Activate User'}
                         </DropdownMenuItem>
-                        <DropdownMenuItem 
+                        <DropdownMenuItem
                           onClick={() => handleDeleteClick(user)}
                           disabled={isUpdating[user.id]}
                           className="text-red-600"
@@ -332,7 +350,10 @@ export default function UsersPage() {
               ))
             ) : (
               <TableRow>
-                <TableCell colSpan={6} className="text-center py-8 text-gray-500">
+                <TableCell
+                  colSpan={6}
+                  className="text-center py-8 text-gray-500"
+                >
                   No users found
                 </TableCell>
               </TableRow>
@@ -347,19 +368,20 @@ export default function UsersPage() {
           <DialogHeader>
             <DialogTitle>Are you sure?</DialogTitle>
             <DialogDescription>
-              This action cannot be undone. This will permanently delete the user account for {userToDelete?.email}.
+              This action cannot be undone. This will permanently delete the
+              user account for {userToDelete?.email}.
             </DialogDescription>
           </DialogHeader>
           <DialogFooter>
-            <Button 
-              variant="outline" 
+            <Button
+              variant="outline"
               onClick={() => setIsDeleteDialogOpen(false)}
               disabled={isUpdating[userToDelete?.id || '']}
             >
               Cancel
             </Button>
-            <Button 
-              variant="destructive" 
+            <Button
+              variant="destructive"
               onClick={handleDeleteConfirm}
               disabled={isUpdating[userToDelete?.id || '']}
             >
@@ -391,7 +413,9 @@ export default function UsersPage() {
                 type="email"
                 className="col-span-3"
                 value={newUser.email}
-                onChange={(e) => setNewUser({...newUser, email: e.target.value})}
+                onChange={(e) =>
+                  setNewUser({ ...newUser, email: e.target.value })
+                }
               />
             </div>
             <div className="grid grid-cols-4 items-center gap-4">
@@ -402,7 +426,9 @@ export default function UsersPage() {
                 id="username"
                 className="col-span-3"
                 value={newUser.username}
-                onChange={(e) => setNewUser({...newUser, username: e.target.value})}
+                onChange={(e) =>
+                  setNewUser({ ...newUser, username: e.target.value })
+                }
               />
             </div>
             <div className="grid grid-cols-4 items-center gap-4">
@@ -414,7 +440,9 @@ export default function UsersPage() {
                 type="password"
                 className="col-span-3"
                 value={newUser.password}
-                onChange={(e) => setNewUser({...newUser, password: e.target.value})}
+                onChange={(e) =>
+                  setNewUser({ ...newUser, password: e.target.value })
+                }
               />
             </div>
             <div className="grid grid-cols-4 items-center gap-4">
@@ -425,26 +453,34 @@ export default function UsersPage() {
                 id="role"
                 className="col-span-3 border rounded-md p-2"
                 value={newUser.role}
-                onChange={(e) => setNewUser({...newUser, role: e.target.value as UserRole})}
+                onChange={(e) =>
+                  setNewUser({ ...newUser, role: e.target.value as UserRole })
+                }
               >
                 <option value="admin">Admin</option>
                 <option value="editor">Editor</option>
                 <option value="author">Author</option>
                 <option value="user">User</option>
+                <option value="guest">Guest</option>
               </select>
             </div>
           </div>
           <DialogFooter>
-            <Button 
-              variant="outline" 
+            <Button
+              variant="outline"
               onClick={() => setIsCreateDialogOpen(false)}
               disabled={isUpdating.create}
             >
               Cancel
             </Button>
-            <Button 
+            <Button
               onClick={handleCreateUser}
-              disabled={isUpdating.create || !newUser.email || !newUser.username || !newUser.password}
+              disabled={
+                isUpdating.create ||
+                !newUser.email ||
+                !newUser.username ||
+                !newUser.password
+              }
             >
               {isUpdating.create ? (
                 <Loader2 className="mr-2 h-4 w-4 animate-spin" />
